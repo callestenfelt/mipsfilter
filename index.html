@@ -20,24 +20,53 @@
         <div class="brand__title">Mips content explorer</div>
       </div>
 
-      <div class="sort">
-        <label class="sort__label" for="sortSelect">Sort</label>
-        <select id="sortSelect" class="sort__select">
-          <option value="relevant" selected>Most relevant</option>
-          <option value="newest">Newest</option>
-        </select>
+      <div class="topbar__actions">
+        <button id="filterToggle" class="btn btn--filter" type="button" aria-label="Open filters">Filter</button>
+        <div class="sort">
+          <label class="sort__label" for="sortSelect">Sort</label>
+          <select id="sortSelect" class="sort__select">
+            <option value="relevant" selected>Most relevant</option>
+            <option value="newest">Newest</option>
+          </select>
+        </div>
       </div>
     </div>
   </header>
 
   <main class="layout">
+    <div id="filterOverlay" class="filter-overlay"></div>
     <aside class="filters" aria-label="Filters">
       <div class="filters__header">
-        <div class="filters__title">Filter</div>
-        <button id="clearBtn" class="btn btn--ghost" type="button" aria-label="Clear all filters">Clear</button>
+        <div class="filters__title">Filter & Sort</div>
+        <div class="filters__header-actions">
+          <button id="clearBtn" class="btn btn--ghost" type="button" aria-label="Clear all filters">Clear All</button>
+          <button id="filterClose" class="btn btn--close" type="button" aria-label="Close filters">&times;</button>
+        </div>
       </div>
-  
-      <div id="filterGroups" class="filter-groups"></div>
+
+      <div class="filters__body">
+        <div id="sortGroup" class="sort-group">
+          <details>
+            <summary>Sort By</summary>
+            <div class="group">
+              <label class="check">
+                <input type="radio" name="sortMobile" value="relevant" checked>
+                <span>Most relevant</span>
+              </label>
+              <label class="check">
+                <input type="radio" name="sortMobile" value="newest">
+                <span>Newest</span>
+              </label>
+            </div>
+          </details>
+        </div>
+
+        <div id="filterGroups" class="filter-groups"></div>
+      </div>
+
+      <div class="filters__footer">
+        <button id="showResultsBtn" class="btn btn--primary" type="button">Show Results</button>
+      </div>
     </aside>
   
     <section class="results" aria-label="Results">

@@ -138,8 +138,20 @@ summary{
   cursor: pointer;
   font-weight: 600;
   list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 summary::-webkit-details-marker{ display:none; }
+summary::after{
+  content: "▼";
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+details[open] summary::after{
+  transform: rotate(180deg);
+}
 
 .group{
   padding: 8px 12px 12px 12px;
@@ -299,4 +311,173 @@ button.chip:hover{
   color: var(--muted);
   font-size: 14px;
   margin-right: 4px;
+}
+
+/* Filter toggle button (mobile only) */
+.btn--filter{
+  background: var(--text);
+  color: #fff;
+  border: none;
+  font-weight: 500;
+}
+.btn--filter:hover{
+  background: #333;
+}
+
+/* Close button */
+.btn--close{
+  display: none;
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  padding: 4px 8px;
+  color: var(--text);
+}
+
+/* Primary button (Show Results) */
+.btn--primary{
+  background: var(--text);
+  color: #fff;
+  border: none;
+  font-weight: 500;
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 16px;
+}
+.btn--primary:hover{
+  background: #333;
+}
+
+/* Filter overlay backdrop */
+.filter-overlay{
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+}
+.filter-overlay.is-active{
+  display: block;
+}
+
+/* Sort group inside filters (mobile only) */
+.sort-group{
+  display: none;
+}
+
+/* Filters body wrapper */
+.filters__body{
+  flex: 1;
+  overflow: auto;
+}
+
+/* Filters footer with sticky button (mobile only) */
+.filters__footer{
+  display: none;
+}
+
+/* Topbar actions wrapper */
+.topbar__actions{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Hide filter toggle on desktop */
+#filterToggle{
+  display: none;
+}
+
+/* Desktop: hide header actions that are mobile-only */
+.filters__header-actions{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ========================
+   MOBILE STYLES (768px)
+   ======================== */
+@media (max-width: 768px){
+  /* Show filter toggle button */
+  #filterToggle{
+    display: inline-flex;
+  }
+
+  /* Hide desktop sort in topbar */
+  .topbar__actions .sort{
+    display: none;
+  }
+
+  /* Layout: single column, no sidebar */
+  .layout{
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  /* Grid: 2 columns on tablet, 1 on small mobile */
+  .grid{
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  /* Filters: full-screen overlay */
+  .filters{
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    border-radius: 0;
+    border: none;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .filters.is-open{
+    transform: translateX(0);
+  }
+
+  /* Show close button */
+  .btn--close{
+    display: block;
+  }
+
+  /* Show sort group in mobile overlay */
+  .sort-group{
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  /* Show sticky footer */
+  .filters__footer{
+    display: block;
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  /* Update header for mobile */
+  .filters__header{
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .filters__title{
+    font-size: 18px;
+  }
+
+  /* Results meta: stack on mobile */
+  .results__meta{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+/* Small mobile: single column grid */
+@media (max-width: 480px){
+  .grid{
+    grid-template-columns: 1fr;
+  }
 }

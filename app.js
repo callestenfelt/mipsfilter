@@ -1,12 +1,20 @@
 const CSV_PATH = "./pages.csv";
 
-// Element
+// Elements
 const gridEl = document.getElementById("grid");
 const groupsEl = document.getElementById("filterGroups");
 const countEl = document.getElementById("resultsCount");
 const sortEl = document.getElementById("sortSelect");
 const clearBtn = document.getElementById("clearBtn");
 const activeFiltersEl = document.getElementById("activeFilters");
+
+// Mobile filter elements
+const filtersEl = document.querySelector(".filters");
+const filterToggleBtn = document.getElementById("filterToggle");
+const filterCloseBtn = document.getElementById("filterClose");
+const filterOverlay = document.getElementById("filterOverlay");
+const showResultsBtn = document.getElementById("showResultsBtn");
+const sortMobileRadios = document.querySelectorAll('input[name="sortMobile"]');
 
 // State
 let rows = [];
@@ -226,7 +234,7 @@ function renderActiveFilters(){
       const k = span.dataset.countKey;
       const v = span.dataset.countValue;
       const n = counts[k]?.get(v) ?? 0;
-      span.textContent = `${n}`;
+      span.textContent = `(${n})`;
     });
   }
 
@@ -330,7 +338,8 @@ function render(){
 
   renderActiveFilters();
   computeCounts();
-  
+  updateShowResultsBtn();
+
   gridEl.innerHTML = "";
   sorted.forEach(r=> gridEl.appendChild(renderCard(r)));
 }
@@ -345,12 +354,53 @@ function clearAll(){
   render();
 }
 
+// Mobile filter overlay functions
+function openFilters(){
+  filtersEl.classList.add("is-open");
+  filterOverlay.classList.add("is-active");
+  document.body.style.overflow = "hidden";
+}
+
+function closeFilters(){
+  filtersEl.classList.remove("is-open");
+  filterOverlay.classList.remove("is-active");
+  document.body.style.overflow = "";
+}
+
+function updateShowResultsBtn(){
+  const count = rows.filter(matchesFilters).length;
+  showResultsBtn.textContent = `Show ${count} Results`;
+}
+
+function syncSortState(value){
+  state.sort = value;
+  // Sync desktop select
+  sortEl.value = value;
+  // Sync mobile radios
+  sortMobileRadios.forEach(radio => {
+    radio.checked = radio.value === value;
+  });
+  render();
+}
+
 // Events
 sortEl.addEventListener("change", (e)=>{
-  state.sort = e.target.value;
-  render();
+  syncSortState(e.target.value);
 });
 clearBtn.addEventListener("click", clearAll);
+
+// Mobile filter events
+filterToggleBtn.addEventListener("click", openFilters);
+filterCloseBtn.addEventListener("click", closeFilters);
+filterOverlay.addEventListener("click", closeFilters);
+showResultsBtn.addEventListener("click", closeFilters);
+
+// Mobile sort radio events
+sortMobileRadios.forEach(radio => {
+  radio.addEventListener("change", (e) => {
+    syncSortState(e.target.value);
+  });
+});
 
 if (!window.Papa) {
   countEl.textContent = "CSV parser not loaded";
