@@ -4,7 +4,6 @@ const CSV_PATH = "./pages.csv";
 const gridEl = document.getElementById("grid");
 const groupsEl = document.getElementById("filterGroups");
 const countEl = document.getElementById("resultsCount");
-const sortEl = document.getElementById("sortSelect");
 const clearBtn = document.getElementById("clearBtn");
 const activeFiltersEl = document.getElementById("activeFilters");
 
@@ -14,7 +13,23 @@ const filterToggleBtn = document.getElementById("filterToggle");
 const filterCloseBtn = document.getElementById("filterClose");
 const filterOverlay = document.getElementById("filterOverlay");
 const showResultsBtn = document.getElementById("showResultsBtn");
-const sortMobileRadios = document.querySelectorAll('input[name="sortMobile"]');
+const sortBtns = document.querySelectorAll(".sort-btn");
+
+// SVG icons for expand/collapse
+const ICON_CHEVRON_DOWN = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-344 240-584l56-56 184 184 184-184 56 56-240 240Z"/></svg>';
+const ICON_CHEVRON_UP = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-528 296-344l-56-56 240-240 240 240-56 56-184-184Z"/></svg>';
+
+// Category -> Activity mapping
+const CATEGORY_ACTIVITIES = {
+  "bike": ["cycling", "road cycling", "mtb"],
+  "motorcycle": ["motorcycling", "mx", "atv"],
+  "snow": ["skiing", "snowboarding", "snow sports"],
+  "climbing": ["climbing"],
+  "equestrian": ["horse riding"],
+  "industrial": ["construction"],
+  "team sports": ["hockey"],
+  "action sports": ["skateboard"]
+};
 
 // State
 let rows = [];
@@ -58,65 +73,159 @@ function getTemplateImage(pageType){
   }
 }
 
-function buildFilterGroup(key, label, values, openByDefault=true){
-  const details = document.createElement("details");
-  if(openByDefault) details.open = true;
+function buildCheckbox(key, value, labelText){
+  const id = `${key}:${value}`.replace(/\s+/g,"_").toLowerCase();
 
-  const summary = document.createElement("summary");
-  summary.textContent = label;
-  details.appendChild(summary);
+  const wrap = document.createElement("label");
+  wrap.className = "check";
 
-  const box = document.createElement("div");
-  box.className = "group";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.id = id;
+  input.dataset.filterKey = key;
+  input.value = value;
 
-  values.forEach(v=>{
-    const vv = normKey(v);
-    const id = `${key}:${vv}`.replace(/\s+/g,"_").toLowerCase();
+  input.addEventListener("change", (e)=>{
+    const k = e.target.dataset.filterKey;
+    const val = e.target.value;
+    if(e.target.checked) state.filters[k].add(val);
+    else state.filters[k].delete(val);
+    render();
+  });
 
-    const wrap = document.createElement("label");
-    wrap.className = "check";
-    wrap.setAttribute("for", id);
+  const text = document.createElement("span");
+  text.textContent = labelText;
+  const cnt = document.createElement("span");
+  cnt.className = "count";
+  cnt.dataset.countKey = key;
+  cnt.dataset.countValue = value;
 
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.id = id;
-    input.dataset.filterKey = key;
-    input.value = vv;
+  wrap.appendChild(input);
+  wrap.appendChild(text);
+  wrap.appendChild(cnt);
 
-    input.addEventListener("change", (e)=>{
-      const k = e.target.dataset.filterKey;
-      const val = e.target.value;
-      if(e.target.checked) state.filters[k].add(val);
-      else state.filters[k].delete(val);
+  return wrap;
+}
+
+function buildPageTypeSection(pageTypes){
+  const section = document.createElement("div");
+  section.className = "filter-section";
+
+  const header = document.createElement("div");
+  header.className = "filter-section__header";
+  header.textContent = "Page type";
+
+  const items = document.createElement("div");
+  items.className = "filter-section__items";
+
+  pageTypes.forEach(pt => {
+    items.appendChild(buildCheckbox("page_type", pt, pt));
+  });
+
+  section.appendChild(header);
+  section.appendChild(items);
+  return section;
+}
+
+function buildCategorySection(){
+  const section = document.createElement("div");
+  section.className = "filter-section";
+
+  const header = document.createElement("div");
+  header.className = "filter-section__header";
+  header.textContent = "Category";
+
+  const items = document.createElement("div");
+  items.className = "filter-section__items";
+
+  // Build categories in the order defined in CATEGORY_ACTIVITIES
+  Object.keys(CATEGORY_ACTIVITIES).forEach(cat => {
+    const activities = CATEGORY_ACTIVITIES[cat];
+    const catItem = document.createElement("div");
+    catItem.className = "category-item";
+
+    // Category header with checkbox and expand button
+    const catHeader = document.createElement("div");
+    catHeader.className = "category-header";
+
+    const catId = `category:${cat}`.replace(/\s+/g,"_").toLowerCase();
+    const catCheckbox = document.createElement("input");
+    catCheckbox.type = "checkbox";
+    catCheckbox.id = catId;
+    catCheckbox.dataset.filterKey = "category";
+    catCheckbox.value = cat;
+
+    catCheckbox.addEventListener("change", (e)=>{
+      if(e.target.checked) {
+        state.filters.category.add(cat);
+        // Also select all activities under this category
+        activities.forEach(act => {
+          state.filters.activity.add(act);
+          const actId = `activity:${act}`.replace(/\s+/g,"_").toLowerCase();
+          const actCb = document.getElementById(actId);
+          if (actCb) actCb.checked = true;
+        });
+      } else {
+        state.filters.category.delete(cat);
+        // Also deselect all activities under this category
+        activities.forEach(act => {
+          state.filters.activity.delete(act);
+          const actId = `activity:${act}`.replace(/\s+/g,"_").toLowerCase();
+          const actCb = document.getElementById(actId);
+          if (actCb) actCb.checked = false;
+        });
+      }
       render();
     });
 
-    const text = document.createElement("span");
-    text.textContent = vv;
-    const cnt = document.createElement("span");
-    cnt.className = "count";
-    cnt.textContent = ""; // fylls vid render()
-    cnt.dataset.countKey = key;
-    cnt.dataset.countValue = vv;
-    wrap.appendChild(input);
-    wrap.appendChild(text);
-    wrap.appendChild(cnt);
-    box.appendChild(wrap);
+    const catLabel = document.createElement("label");
+    catLabel.className = "category-label";
+    catLabel.setAttribute("for", catId);
+    catLabel.innerHTML = `<span>${cat}</span><span class="count" data-count-key="category" data-count-value="${cat}"></span>`;
+
+    const expandBtn = document.createElement("button");
+    expandBtn.type = "button";
+    expandBtn.className = "category-expand" + (activities.length === 0 ? " is-hidden" : "");
+    expandBtn.innerHTML = ICON_CHEVRON_DOWN;
+    expandBtn.setAttribute("aria-label", `Expand ${cat} activities`);
+
+    catHeader.appendChild(catCheckbox);
+    catHeader.appendChild(catLabel);
+    catHeader.appendChild(expandBtn);
+
+    // Activity sub-items
+    const activityItems = document.createElement("div");
+    activityItems.className = "activity-items";
+
+    activities.forEach(act => {
+      activityItems.appendChild(buildCheckbox("activity", act, act));
+    });
+
+    // Expand/collapse behavior
+    expandBtn.addEventListener("click", ()=>{
+      const isOpen = activityItems.classList.toggle("is-open");
+      expandBtn.innerHTML = isOpen ? ICON_CHEVRON_UP : ICON_CHEVRON_DOWN;
+      expandBtn.setAttribute("aria-label", isOpen ? `Collapse ${cat} activities` : `Expand ${cat} activities`);
+    });
+
+    catItem.appendChild(catHeader);
+    if(activities.length > 0){
+      catItem.appendChild(activityItems);
+    }
+    items.appendChild(catItem);
   });
 
-  details.appendChild(box);
-  return details;
+  section.appendChild(header);
+  section.appendChild(items);
+  return section;
 }
 
 function buildFiltersFromData(){
   const pageTypes = uniqSorted(rows.map(r=>normKey(r.page_type)));
-  const categories = uniqSorted(rows.map(r=>normKey(r.category)));
-  const activities = uniqSorted(rows.map(r=>normKey(r.activity)));
 
   groupsEl.innerHTML = "";
-  groupsEl.appendChild(buildFilterGroup("page_type", "Page type", pageTypes, true));
-  groupsEl.appendChild(buildFilterGroup("category", "Category", categories, true));
-  groupsEl.appendChild(buildFilterGroup("activity", "Activity", activities, false));
+  groupsEl.appendChild(buildPageTypeSection(pageTypes));
+  groupsEl.appendChild(buildCategorySection());
 }
 
 function matchesFilters(r){
@@ -145,7 +254,13 @@ function sortRows(list){
   if(state.sort === "newest"){
     return [...list].sort((a,b)=>parseDate(b.publish_date) - parseDate(a.publish_date));
   }
-  // "Most relevant": score desc, then newest desc as tie-breaker
+  // "Most relevant": if filters active, sort by match score; otherwise keep original order
+  const hasActiveFilters = state.filters.page_type.size > 0 ||
+                           state.filters.category.size > 0 ||
+                           state.filters.activity.size > 0;
+  if(!hasActiveFilters){
+    return list; // Keep original CSV order
+  }
   return [...list].sort((a,b)=>{
     const s = relevanceScore(b) - relevanceScore(a);
     if(s !== 0) return s;
@@ -186,57 +301,63 @@ function renderActiveFilters(){
 
       btn.addEventListener("click", ()=>{
         state.filters[key].delete(value);
-  
+
         // uncheck corresponding checkbox
-        const id = `${key}:${normKey(value)}`.replace(/\s+/g,"_").toLowerCase();
+        const id = `${key}:${value}`.replace(/\s+/g,"_").toLowerCase();
         const cb = document.getElementById(id);
         if (cb) cb.checked = false;
-  
+
         render();
       });
-  
+
       activeFiltersEl.appendChild(btn);
     });
   }
 
-  function computeCounts(){
-    // För varje filterval, räkna hur många rader som skulle matcha
-    // med nuvarande filter i de andra grupperna.
-    const keys = ["page_type","category","activity"];
-  
-    const counts = {
-      page_type: new Map(),
-      category: new Map(),
-      activity: new Map(),
-    };
-  
-    keys.forEach(targetKey=>{
-      // bygg en “matcher” som ignorerar targetKey men respekterar övriga
-      const otherKeys = keys.filter(k=>k!==targetKey);
-  
-      rows.forEach(r=>{
-        // matcha andra grupper
-        const ok = otherKeys.every(k=>{
-          const active = state.filters[k];
-          if(active.size === 0) return true;
-          return active.has(normKey(r[k]));
-        });
-        if(!ok) return;
-  
-        const v = normKey(r[targetKey]);
-        if(!v) return;
-        counts[targetKey].set(v, (counts[targetKey].get(v) || 0) + 1);
-      });
+function computeCounts(){
+  const counts = {
+    page_type: new Map(),
+    category: new Map(),
+    activity: new Map(),
+  };
+
+  // Count page_type (simple count respecting other filters)
+  rows.forEach(r=>{
+    const okCat = state.filters.category.size === 0 || state.filters.category.has(normKey(r.category));
+    const okAct = state.filters.activity.size === 0 || state.filters.activity.has(normKey(r.activity));
+    if(okCat && okAct){
+      const v = normKey(r.page_type);
+      if(v) counts.page_type.set(v, (counts.page_type.get(v) || 0) + 1);
+    }
+  });
+
+  // Count activities (respecting page_type filter)
+  rows.forEach(r=>{
+    const okPt = state.filters.page_type.size === 0 || state.filters.page_type.has(normKey(r.page_type));
+    if(okPt){
+      const v = normKey(r.activity);
+      if(v) counts.activity.set(v, (counts.activity.get(v) || 0) + 1);
+    }
+  });
+
+  // Count categories = sum of their mapped activities' counts
+  Object.keys(CATEGORY_ACTIVITIES).forEach(cat => {
+    const activities = CATEGORY_ACTIVITIES[cat];
+    let total = 0;
+    activities.forEach(act => {
+      total += counts.activity.get(act) || 0;
     });
-  
-    // uppdatera DOM
-    groupsEl.querySelectorAll(".count").forEach(span=>{
-      const k = span.dataset.countKey;
-      const v = span.dataset.countValue;
-      const n = counts[k]?.get(v) ?? 0;
-      span.textContent = `(${n})`;
-    });
-  }
+    counts.category.set(cat, total);
+  });
+
+  // Update DOM
+  document.querySelectorAll(".count[data-count-key]").forEach(span=>{
+    const k = span.dataset.countKey;
+    const v = span.dataset.countValue;
+    const n = counts[k]?.get(v) ?? 0;
+    span.textContent = `(${n})`;
+  });
+}
 
 function renderCard(r){
   const url = normText(r.url);
@@ -289,7 +410,7 @@ function renderCard(r){
       else set.add(text);
   
       // Sync checkbox UI
-      const id = `${key}:${normKey(text)}`.replace(/\s+/g,"_").toLowerCase();
+      const id = `${key}:${text}`.replace(/\s+/g,"_").toLowerCase();
       const cb = document.getElementById(id);
       if (cb) cb.checked = set.has(text);
   
@@ -349,8 +470,8 @@ function clearAll(){
   state.filters.category.clear();
   state.filters.activity.clear();
 
-  // uncheck all
-  groupsEl.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  // uncheck all checkboxes in the filter panel
+  document.querySelectorAll('.filters input[type="checkbox"]').forEach(cb => cb.checked = false);
   render();
 }
 
@@ -374,19 +495,14 @@ function updateShowResultsBtn(){
 
 function syncSortState(value){
   state.sort = value;
-  // Sync desktop select
-  sortEl.value = value;
-  // Sync mobile radios
-  sortMobileRadios.forEach(radio => {
-    radio.checked = radio.value === value;
+  // Sync sort buttons
+  sortBtns.forEach(btn => {
+    btn.classList.toggle("is-active", btn.dataset.sort === value);
   });
   render();
 }
 
 // Events
-sortEl.addEventListener("change", (e)=>{
-  syncSortState(e.target.value);
-});
 clearBtn.addEventListener("click", clearAll);
 
 // Mobile filter events
@@ -395,10 +511,10 @@ filterCloseBtn.addEventListener("click", closeFilters);
 filterOverlay.addEventListener("click", closeFilters);
 showResultsBtn.addEventListener("click", closeFilters);
 
-// Mobile sort radio events
-sortMobileRadios.forEach(radio => {
-  radio.addEventListener("change", (e) => {
-    syncSortState(e.target.value);
+// Sort button events
+sortBtns.forEach(btn => {
+  btn.addEventListener("click", () => {
+    syncSortState(btn.dataset.sort);
   });
 });
 
