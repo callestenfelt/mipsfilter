@@ -174,7 +174,8 @@ function renderActiveFilters(){
       btn.type = "button";
       btn.className = "chip";
       btn.textContent = `${value} ×`;
-  
+      btn.setAttribute("aria-label", `Remove ${value} filter`);
+
       btn.addEventListener("click", ()=>{
         state.filters[key].delete(value);
   
@@ -266,9 +267,9 @@ function renderCard(r){
     btn.type = "button";
     btn.className = accent ? "chip chip--accent" : "chip";
     btn.textContent = text;
-  
-    // Om chippen inte mappar till filter (t.ex. tomma värden), gör inget
+
     if (!key) return btn;
+    btn.setAttribute("aria-label", `Filter by ${key.replace("_", " ")}: ${text}`);
   
     btn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -301,7 +302,8 @@ function renderCard(r){
   card.appendChild(body);
 
   card.tabIndex = 0;
-card.dataset.url = url;
+  card.dataset.url = url;
+  card.setAttribute("aria-label", `${title} - Press Enter to open`);
 
 card.addEventListener("click", (e) => {
   // om man klickar på en länk/chip ska vi inte dubbel-öppna
@@ -351,7 +353,6 @@ sortEl.addEventListener("change", (e)=>{
 clearBtn.addEventListener("click", clearAll);
 
 if (!window.Papa) {
-  console.error("PapaParse not found. Check the CDN script tag in index.html.");
   countEl.textContent = "CSV parser not loaded";
 }
 if (window.Papa) Papa.parse(CSV_PATH, {
@@ -359,9 +360,6 @@ if (window.Papa) Papa.parse(CSV_PATH, {
   header: true,
   skipEmptyLines: true,
   complete: (result)=>{
-    console.log("CSV fields:", result?.meta?.fields);
-    console.log("First row raw:", result?.data?.[0]);
-
     const pick = (r, keys) => {
       for (const k of keys) {
         if (r && Object.prototype.hasOwnProperty.call(r, k)) return r[k];
@@ -379,16 +377,10 @@ if (window.Papa) Papa.parse(CSV_PATH, {
       publish_date: normText(pick(r, ["publish_date", "publish date", "Publish Date"])),
     })).filter(r=>r.url && r.url.startsWith("http"));
 
-    console.log("Loaded rows:", rows.length);
-    if (rows.length === 0) {
-      console.warn("No rows loaded. Check pages.csv path and headers.");
-    }
-
     buildFiltersFromData();
     render();
   },
-  error: (err)=>{
-    console.error("CSV load error:", err);
+  error: ()=>{
     countEl.textContent = "Could not load pages.csv";
   }
 });
